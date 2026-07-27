@@ -2,14 +2,14 @@ package com.lc.system.security;
 
 import com.lc.common.exception.BusinessException;
 import com.lc.common.exception.GlobalErrorCode;
-import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-@Primary
+@Profile({"h2", "memory"})
 public class InMemoryRefreshTokenService implements RefreshTokenService {
 
     private final Map<Long, String> tokenStore = new ConcurrentHashMap<>();

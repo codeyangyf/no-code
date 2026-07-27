@@ -5,10 +5,12 @@ com/lc/system/service/impl/UserServiceImpl.class
 com/lc/system/entity/SysUser.class
 com/lc/system/repository/SysUserRepository.class
 com/lc/system/service/UserService.class
+com/lc/system/security/RedisRefreshTokenService.class
 com/lc/system/repository/SysRoleRepository.class
 com/lc/system/repository/SysUserRoleRepository.class
 com/lc/system/entity/SysTenant.class
 com/lc/system/security/RefreshTokenService.class
+com/lc/system/security/InMemoryRefreshTokenService.class
 com/lc/system/entity/ProjectMember.class
 com/lc/system/dto/AuthDTO$UserInfo.class
 com/lc/system/security/JwtTokenService.class

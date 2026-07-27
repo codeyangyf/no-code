@@ -2,15 +2,16 @@ package com.lc.system.security;
 
 import com.lc.common.exception.BusinessException;
 import com.lc.common.exception.GlobalErrorCode;
+import com.lc.system.config.JwtConfig;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Profile;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
 
 @Service
-@Profile("prod")
+@Primary
 @RequiredArgsConstructor
 public class RedisRefreshTokenService implements RefreshTokenService {
     private final RedisTemplate<String, Object> redisTemplate;
