@@ -20,7 +20,6 @@ com/lc/system/dto/AuthDTO$RefreshRequest$RefreshRequestBuilder.class
 com/lc/system/entity/SysRole.class
 com/lc/system/dto/AuthDTO.class
 com/lc/system/entity/SysDict.class
-com/lc/system/dto/AuthDTO$AuthDTOBuilder.class
 com/lc/system/entity/ProjectInfo.class
 com/lc/system/dto/AuthDTO$UserInfo$UserInfoBuilder.class
 com/lc/system/entity/SysOrg.class
