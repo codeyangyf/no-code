@@ -37,3 +37,11 @@ storage:
 
 encrypt:
   key: ${LC_ENCRYPT_KEY:lc-platform-2026-secure-key-32bx}
+
+cors:
+  allowed-origins:
+    - http://localhost:5173
+    - http://localhost:3000
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+  allow-credentials: true
+  max-age: 3600
