@@ -25,3 +25,15 @@ logging:
   level:
     com.lc: DEBUG
     org.springframework.security: INFO
+
+storage:
+  type: local
+  local-path: ./storage
+  endpoint: ${MINIO_ENDPOINT:}
+  access-key: ${MINIO_ACCESS_KEY:}
+  secret-key: ${MINIO_SECRET_KEY:}
+  default-bucket: lc-platform
+  max-file-size: 10485760
+
+encrypt:
+  key: ${LC_ENCRYPT_KEY:lc-platform-2026-secure-key-32bx}
