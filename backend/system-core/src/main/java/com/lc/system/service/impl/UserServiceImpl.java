@@ -1,12 +1,15 @@
 package com.lc.system.service.impl;
 
+import com.lc.common.context.UserContext;
 import com.lc.common.dto.PageResult;
 import com.lc.common.exception.BusinessException;
 import com.lc.common.exception.GlobalErrorCode;
 import com.lc.common.util.PasswordUtil;
 import com.lc.system.dto.UserDTO;
+import com.lc.system.entity.SysRole;
 import com.lc.system.entity.SysUser;
 import com.lc.system.entity.SysUserRole;
+import com.lc.system.repository.SysRoleRepository;
 import com.lc.system.repository.SysUserRepository;
 import com.lc.system.repository.SysUserRoleRepository;
 import com.lc.system.service.UserService;
@@ -27,6 +30,7 @@ public class UserServiceImpl implements UserService {
 
     private final SysUserRepository userRepository;
     private final SysUserRoleRepository userRoleRepository;
+    private final SysRoleRepository roleRepository;
 
     @Override
     public SysUser findByUsername(String username) {
@@ -77,9 +81,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new BusinessException(GlobalErrorCode.USER_NOT_FOUND);
-        }
+        getUserOrThrow(id);
         // 清理用户角色关联关系
         userRoleRepository.deleteByUserId(id);
         userRepository.deleteById(id);
@@ -116,16 +118,13 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserDTO.UserResponse getDetail(Long id) {
-        return toResponse(findById(id));
+        return toResponse(getUserOrThrow(id));
     }
 
     @Override
     @Transactional
     public UserDTO.UserResponse create(UserDTO.CreateRequest request) {
-        Long tenantId = request.getTenantId();
-        if (tenantId == null) {
-            tenantId = com.lc.common.context.UserContext.getTenantId();
-        }
+        Long tenantId = UserContext.getTenantId();
         if (tenantId != null && userRepository.existsByTenantIdAndUsername(tenantId, request.getUsername())) {
             throw new BusinessException(GlobalErrorCode.DATA_CONFLICT);
         }
@@ -142,7 +141,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserDTO.UserResponse update(Long id, UserDTO.UpdateRequest request) {
-        SysUser existing = findById(id);
+        SysUser existing = getUserOrThrow(id);
         if (request.getRealName() != null) {
             existing.setRealName(request.getRealName());
         }
@@ -158,7 +157,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void resetPassword(Long id, String password) {
-        SysUser existing = findById(id);
+        SysUser existing = getUserOrThrow(id);
         if (password == null || password.isEmpty()) {
             throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR);
         }
@@ -169,13 +168,26 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void assignRoles(Long userId, List<Long> roleIds) {
-        findById(userId);
+        getUserOrThrow(userId);
         userRoleRepository.deleteByUserId(userId);
         if (roleIds == null || roleIds.isEmpty()) {
             return;
         }
         // 去重
         Set<Long> distinctIds = new HashSet<>(roleIds);
+        // 校验关联角色属于当前租户
+        Long currentTenantId = UserContext.getTenantId();
+        if (currentTenantId != null) {
+            List<SysRole> roles = roleRepository.findAllById(distinctIds);
+            if (roles.size() != distinctIds.size()) {
+                throw new BusinessException(GlobalErrorCode.NOT_FOUND);
+            }
+            for (SysRole role : roles) {
+                if (!currentTenantId.equals(role.getTenantId())) {
+                    throw new BusinessException(GlobalErrorCode.NOT_FOUND);
+                }
+            }
+        }
         for (Long roleId : distinctIds) {
             SysUserRole ur = new SysUserRole();
             ur.setUserId(userId);
@@ -187,7 +199,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void updateStatus(Long id, Integer status) {
-        SysUser existing = findById(id);
+        SysUser existing = getUserOrThrow(id);
         existing.setStatus(status);
         userRepository.save(existing);
     }
@@ -195,7 +207,21 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public List<Long> getUserRoleIds(Long userId) {
+        getUserOrThrow(userId);
         return userRoleRepository.findRoleIdsByUserId(userId);
+    }
+
+    /**
+     * 按主键查询用户并校验租户归属。
+     * UserContext.getTenantId() 为 null（超级管理员）时跳过租户校验。
+     */
+    private SysUser getUserOrThrow(Long id) {
+        SysUser user = findById(id);
+        Long currentTenantId = UserContext.getTenantId();
+        if (currentTenantId != null && !currentTenantId.equals(user.getTenantId())) {
+            throw new BusinessException(GlobalErrorCode.NOT_FOUND);
+        }
+        return user;
     }
 
     private UserDTO.UserResponse toResponse(SysUser user) {

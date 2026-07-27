@@ -102,7 +102,12 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional
     public void delete(Long id) {
-        getMenuOrThrow(id);
+        SysMenu existing = getMenuOrThrow(id);
+        // 存在子菜单时禁止删除，避免产生孤立节点
+        List<SysMenu> children = menuRepository.findByParentIdAndTenantId(id, existing.getTenantId());
+        if (!children.isEmpty()) {
+            throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR.getCode(), "请先删除子菜单");
+        }
         // 删除菜单前先清理角色关联关系
         List<SysRoleMenu> roleMenus = roleMenuRepository.findByMenuId(id);
         if (!roleMenus.isEmpty()) {
@@ -131,8 +136,14 @@ public class MenuServiceImpl implements MenuService {
     }
 
     private SysMenu getMenuOrThrow(Long id) {
-        return menuRepository.findById(id)
+        SysMenu menu = menuRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(GlobalErrorCode.NOT_FOUND));
+        // 校验租户归属（超级管理员 tenantId 为 null 时跳过）
+        Long currentTenantId = UserContext.getTenantId();
+        if (currentTenantId != null && !currentTenantId.equals(menu.getTenantId())) {
+            throw new BusinessException(GlobalErrorCode.NOT_FOUND);
+        }
+        return menu;
     }
 
     private MenuDTO.MenuResponse toResponse(SysMenu menu) {

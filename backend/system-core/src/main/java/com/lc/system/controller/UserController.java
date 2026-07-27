@@ -21,12 +21,10 @@ public class UserController {
     @GetMapping
     @PreAuthorize("system:user:list")
     public Result<PageResult<UserDTO.UserResponse>> list(
-            @RequestParam(required = false) Long tenantId,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Long effectiveTenantId = tenantId != null ? tenantId : UserContext.getTenantId();
-        return Result.success(userService.list(effectiveTenantId, keyword, page, size));
+        return Result.success(userService.list(UserContext.getTenantId(), keyword, page, size));
     }
 
     @GetMapping("/{id}")

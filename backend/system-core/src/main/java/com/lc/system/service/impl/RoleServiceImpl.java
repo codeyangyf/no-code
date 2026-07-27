@@ -5,10 +5,14 @@ import com.lc.common.dto.PageResult;
 import com.lc.common.exception.BusinessException;
 import com.lc.common.exception.GlobalErrorCode;
 import com.lc.system.dto.RoleDTO;
+import com.lc.system.entity.SysMenu;
 import com.lc.system.entity.SysRole;
 import com.lc.system.entity.SysRoleMenu;
+import com.lc.system.repository.SysMenuRepository;
 import com.lc.system.repository.SysRoleMenuRepository;
+import com.lc.system.repository.SysRolePermissionRepository;
 import com.lc.system.repository.SysRoleRepository;
+import com.lc.system.repository.SysUserRoleRepository;
 import com.lc.system.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +31,9 @@ public class RoleServiceImpl implements RoleService {
 
     private final SysRoleRepository roleRepository;
     private final SysRoleMenuRepository roleMenuRepository;
+    private final SysUserRoleRepository userRoleRepository;
+    private final SysRolePermissionRepository rolePermissionRepository;
+    private final SysMenuRepository menuRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -95,8 +102,10 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     public void delete(Long id) {
         getRoleOrThrow(id);
-        // 删除角色前先清理关联关系
+        // 删除角色前清理全部关联关系：sys_role_menu / sys_user_role / sys_role_permission
         roleMenuRepository.deleteByRoleId(id);
+        userRoleRepository.deleteByRoleId(id);
+        rolePermissionRepository.deleteByRoleId(id);
         roleRepository.deleteById(id);
     }
 
@@ -110,6 +119,19 @@ public class RoleServiceImpl implements RoleService {
         }
         // 去重
         Set<Long> distinctIds = new HashSet<>(menuIds);
+        // 校验关联菜单属于当前租户
+        Long currentTenantId = UserContext.getTenantId();
+        if (currentTenantId != null) {
+            List<SysMenu> menus = menuRepository.findAllById(distinctIds);
+            if (menus.size() != distinctIds.size()) {
+                throw new BusinessException(GlobalErrorCode.NOT_FOUND);
+            }
+            for (SysMenu menu : menus) {
+                if (!currentTenantId.equals(menu.getTenantId())) {
+                    throw new BusinessException(GlobalErrorCode.NOT_FOUND);
+                }
+            }
+        }
         for (Long menuId : distinctIds) {
             SysRoleMenu rm = new SysRoleMenu();
             rm.setRoleId(roleId);
@@ -134,8 +156,14 @@ public class RoleServiceImpl implements RoleService {
     }
 
     private SysRole getRoleOrThrow(Long id) {
-        return roleRepository.findById(id)
+        SysRole role = roleRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(GlobalErrorCode.ROLE_NOT_FOUND));
+        // 校验租户归属（超级管理员 tenantId 为 null 时跳过）
+        Long currentTenantId = UserContext.getTenantId();
+        if (currentTenantId != null && !currentTenantId.equals(role.getTenantId())) {
+            throw new BusinessException(GlobalErrorCode.NOT_FOUND);
+        }
+        return role;
     }
 
     private RoleDTO.RoleResponse toResponse(SysRole role) {

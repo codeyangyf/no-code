@@ -19,16 +19,14 @@ public class MenuController {
 
     @GetMapping
     @PreAuthorize("system:menu:list")
-    public Result<List<MenuDTO.MenuResponse>> list(@RequestParam(required = false) Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : UserContext.getTenantId();
-        return Result.success(menuService.list(effectiveTenantId));
+    public Result<List<MenuDTO.MenuResponse>> list() {
+        return Result.success(menuService.list(UserContext.getTenantId()));
     }
 
     @GetMapping("/tree")
     @PreAuthorize("system:menu:list")
-    public Result<List<MenuDTO.MenuResponse>> getMenuTree(@RequestParam(required = false) Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : UserContext.getTenantId();
-        return Result.success(menuService.getMenuTree(effectiveTenantId));
+    public Result<List<MenuDTO.MenuResponse>> getMenuTree() {
+        return Result.success(menuService.getMenuTree(UserContext.getTenantId()));
     }
 
     @GetMapping("/{id}")
