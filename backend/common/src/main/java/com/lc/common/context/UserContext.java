@@ -30,16 +30,16 @@ public class UserContext {
 
     public static Long getUserId() {
         UserContext ctx = HOLDER.get();
-        return ctx != null ? ctx.getUserId() : null;
+        return ctx != null ? ctx.userId : null;
     }
 
     public static Long getTenantId() {
         UserContext ctx = HOLDER.get();
-        return ctx != null ? ctx.getTenantId() : null;
+        return ctx != null ? ctx.tenantId : null;
     }
 
     public static String getUsername() {
         UserContext ctx = HOLDER.get();
-        return ctx != null ? ctx.getUsername() : null;
+        return ctx != null ? ctx.username : null;
     }
 }
