@@ -1,9 +1,0 @@
-CREATE TABLE IF NOT EXISTS project_member (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
-    project_id BIGINT NOT NULL COMMENT '项目ID',
-    user_id BIGINT NOT NULL COMMENT '用户ID',
-    role VARCHAR(32) NOT NULL COMMENT '角色 READ_ONLY/EDITOR/ADMIN/PUBLISHER',
-    status INT NOT NULL DEFAULT 1 COMMENT '状态 0禁用 1启用',
-    joined_time DATETIME NOT NULL COMMENT '加入时间',
-    CONSTRAINT uk_project_member UNIQUE (project_id, user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目成员表';

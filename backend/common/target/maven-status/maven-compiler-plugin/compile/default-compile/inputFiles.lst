@@ -1,9 +1,0 @@
-/workspace/backend/common/src/main/java/com/lc/common/exception/GlobalErrorCode.java
-/workspace/backend/common/src/main/java/com/lc/common/dto/PageResult.java
-/workspace/backend/common/src/main/java/com/lc/common/dto/Result.java
-/workspace/backend/common/src/main/java/com/lc/common/util/PasswordUtil.java
-/workspace/backend/common/src/main/java/com/lc/common/annotation/TenantCheck.java
-/workspace/backend/common/src/main/java/com/lc/common/context/TenantContext.java
-/workspace/backend/common/src/main/java/com/lc/common/config/RedisConfig.java
-/workspace/backend/common/src/main/java/com/lc/common/context/UserContext.java
-/workspace/backend/common/src/main/java/com/lc/common/exception/BusinessException.java
