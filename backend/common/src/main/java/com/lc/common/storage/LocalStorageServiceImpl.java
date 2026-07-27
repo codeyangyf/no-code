@@ -75,6 +75,12 @@ public class LocalStorageServiceImpl implements StorageService {
     }
 
     private Path resolvePath(String bucket, String key) {
-        return Paths.get(properties.getLocalPath(), bucket, key);
+        Path base = Paths.get(properties.getLocalPath()).toAbsolutePath().normalize();
+        Path target = base.resolve(bucket).resolve(key).normalize();
+        if (!target.startsWith(base)) {
+            throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR.getCode(),
+                    "Invalid path: path traversal detected");
+        }
+        return target;
     }
 }

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -37,6 +38,12 @@ public class FileController {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
+    private static final Set<String> ALLOWED_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+            "application/pdf", "text/plain", "application/json",
+            "application/zip", "application/x-zip-compressed"
+    );
+
     private final StorageService storageService;
     private final StorageProperties storageProperties;
 
@@ -47,6 +54,12 @@ public class FileController {
         }
         if (file.getSize() > storageProperties.getMaxFileSize()) {
             throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR);
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_TYPES.contains(contentType.toLowerCase())) {
+            throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR.getCode(),
+                    "不支持的文件类型: " + contentType);
         }
 
         Long tenantId = UserContext.getTenantId();
@@ -82,6 +95,7 @@ public class FileController {
     @GetMapping("/{bucket}/{key:.+}")
     public ResponseEntity<InputStreamResource> download(@PathVariable String bucket,
                                                           @PathVariable String key) {
+        validateTenantAccess(key);
         InputStream input = storageService.download(bucket, key);
         String fileName = key.contains("/") ? key.substring(key.lastIndexOf('/') + 1) : key;
         HttpHeaders headers = new HttpHeaders();
@@ -94,6 +108,7 @@ public class FileController {
 
     @DeleteMapping("/{bucket}/{key:.+}")
     public Result<Void> delete(@PathVariable String bucket, @PathVariable String key) {
+        validateTenantAccess(key);
         storageService.delete(bucket, key);
         return Result.success();
     }
@@ -107,6 +122,17 @@ public class FileController {
             return "";
         }
         return fileName.substring(idx + 1);
+    }
+
+    private void validateTenantAccess(String key) {
+        Long currentTenantId = UserContext.getTenantId();
+        if (currentTenantId != null) {
+            // key 格式: tenant/{tenantId}/...
+            if (!key.startsWith("tenant/" + currentTenantId + "/")) {
+                throw new BusinessException(GlobalErrorCode.PERMISSION_DENIED.getCode(),
+                        "无权访问该文件");
+            }
+        }
     }
 
     @Data
