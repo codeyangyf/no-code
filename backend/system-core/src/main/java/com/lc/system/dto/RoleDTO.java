@@ -30,6 +30,7 @@ public class RoleDTO {
         private String description;
         private Integer sortOrder;
         private Integer status;
+        private Long version;
     }
 
     @Data
@@ -44,6 +45,7 @@ public class RoleDTO {
         private String description;
         private Integer status;
         private Integer sortOrder;
+        private Long version;
         private LocalDateTime createdTime;
         private LocalDateTime updatedTime;
     }

@@ -81,10 +81,11 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUser(Long id) {
-        getUserOrThrow(id);
+        SysUser existing = getUserOrThrow(id);
         // 清理用户角色关联关系
         userRoleRepository.deleteByUserId(id);
-        userRepository.deleteById(id);
+        existing.setDeleted(1);
+        userRepository.save(existing);
     }
 
     @Override
@@ -142,6 +143,9 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserDTO.UserResponse update(Long id, UserDTO.UpdateRequest request) {
         SysUser existing = getUserOrThrow(id);
+        if (request.getVersion() != null && !request.getVersion().equals(existing.getVersion())) {
+            throw new BusinessException(GlobalErrorCode.DATA_CONFLICT);
+        }
         if (request.getRealName() != null) {
             existing.setRealName(request.getRealName());
         }
@@ -232,6 +236,7 @@ public class UserServiceImpl implements UserService {
                 .realName(user.getRealName())
                 .email(user.getEmail())
                 .status(user.getStatus())
+                .version(user.getVersion())
                 .createdTime(user.getCreatedTime())
                 .build();
     }

@@ -39,6 +39,7 @@ public class MenuDTO {
         private String permission;
         private Integer sortOrder;
         private Integer status;
+        private Long version;
     }
 
     @Data
@@ -57,6 +58,7 @@ public class MenuDTO {
         private String permission;
         private Integer sortOrder;
         private Integer status;
+        private Long version;
         private LocalDateTime createdTime;
         private LocalDateTime updatedTime;
         private List<MenuResponse> children;

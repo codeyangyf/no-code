@@ -70,6 +70,9 @@ public class TenantServiceImpl implements TenantService {
     public TenantDTO.TenantResponse update(Long id, TenantDTO.UpdateRequest request) {
         SysTenant existing = tenantRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(GlobalErrorCode.TENANT_NOT_FOUND));
+        if (request.getVersion() != null && !request.getVersion().equals(existing.getVersion())) {
+            throw new BusinessException(GlobalErrorCode.DATA_CONFLICT);
+        }
         if (request.getTenantName() != null) {
             existing.setTenantName(request.getTenantName());
         }
@@ -91,8 +94,8 @@ public class TenantServiceImpl implements TenantService {
     public void delete(Long id) {
         SysTenant existing = tenantRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(GlobalErrorCode.TENANT_NOT_FOUND));
-        // 软删除：禁用租户
-        existing.setStatus(0);
+        // 软删除：标记 deleted=1
+        existing.setDeleted(1);
         tenantRepository.save(existing);
     }
 
@@ -120,6 +123,7 @@ public class TenantServiceImpl implements TenantService {
                 .logoUrl(tenant.getLogoUrl())
                 .domain(tenant.getDomain())
                 .status(tenant.getStatus())
+                .version(tenant.getVersion())
                 .expireTime(tenant.getExpireTime())
                 .createdTime(tenant.getCreatedTime())
                 .updatedTime(tenant.getUpdatedTime())

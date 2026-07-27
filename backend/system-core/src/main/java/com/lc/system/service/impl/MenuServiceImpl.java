@@ -69,6 +69,9 @@ public class MenuServiceImpl implements MenuService {
     @Transactional
     public MenuDTO.MenuResponse update(Long id, MenuDTO.UpdateRequest request) {
         SysMenu existing = getMenuOrThrow(id);
+        if (request.getVersion() != null && !request.getVersion().equals(existing.getVersion())) {
+            throw new BusinessException(GlobalErrorCode.DATA_CONFLICT);
+        }
         if (request.getParentId() != null) {
             existing.setParentId(request.getParentId());
         }
@@ -113,7 +116,8 @@ public class MenuServiceImpl implements MenuService {
         if (!roleMenus.isEmpty()) {
             roleMenuRepository.deleteAll(roleMenus);
         }
-        menuRepository.deleteById(id);
+        existing.setDeleted(1);
+        menuRepository.save(existing);
     }
 
     @Override
@@ -159,6 +163,7 @@ public class MenuServiceImpl implements MenuService {
                 .permission(menu.getPermission())
                 .sortOrder(menu.getSortOrder())
                 .status(menu.getStatus())
+                .version(menu.getVersion())
                 .createdTime(menu.getCreatedTime())
                 .updatedTime(menu.getUpdatedTime())
                 .build();

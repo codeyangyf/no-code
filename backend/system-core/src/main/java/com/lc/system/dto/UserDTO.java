@@ -30,6 +30,7 @@ public class UserDTO {
         private String realName;
         private String email;
         private Integer status;
+        private Long version;
     }
 
     @Data
@@ -43,6 +44,7 @@ public class UserDTO {
         private String realName;
         private String email;
         private Integer status;
+        private Long version;
         private LocalDateTime createdTime;
     }
 

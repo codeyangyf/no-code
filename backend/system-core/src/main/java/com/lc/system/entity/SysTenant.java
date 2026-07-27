@@ -2,12 +2,14 @@ package com.lc.system.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
 @Data
 @Entity
 @Table(name = "sys_tenant")
+@SQLRestriction("deleted = 0")
 public class SysTenant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,6 +29,13 @@ public class SysTenant {
 
     @Column(name = "status", nullable = false)
     private Integer status = 1;
+
+    @Column(name = "deleted", nullable = false)
+    private Integer deleted = 0;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
 
     @Column(name = "expire_time")
     private LocalDateTime expireTime;

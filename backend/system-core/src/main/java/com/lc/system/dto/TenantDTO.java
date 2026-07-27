@@ -29,6 +29,7 @@ public class TenantDTO {
         private String domain;
         private Integer status;
         private LocalDateTime expireTime;
+        private Long version;
     }
 
     @Data
@@ -42,6 +43,7 @@ public class TenantDTO {
         private String logoUrl;
         private String domain;
         private Integer status;
+        private Long version;
         private LocalDateTime expireTime;
         private LocalDateTime createdTime;
         private LocalDateTime updatedTime;

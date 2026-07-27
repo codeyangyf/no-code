@@ -83,6 +83,9 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     public RoleDTO.RoleResponse update(Long id, RoleDTO.UpdateRequest request) {
         SysRole existing = getRoleOrThrow(id);
+        if (request.getVersion() != null && !request.getVersion().equals(existing.getVersion())) {
+            throw new BusinessException(GlobalErrorCode.DATA_CONFLICT);
+        }
         if (request.getRoleName() != null) {
             existing.setRoleName(request.getRoleName());
         }
@@ -101,12 +104,13 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     public void delete(Long id) {
-        getRoleOrThrow(id);
+        SysRole existing = getRoleOrThrow(id);
         // 删除角色前清理全部关联关系：sys_role_menu / sys_user_role / sys_role_permission
         roleMenuRepository.deleteByRoleId(id);
         userRoleRepository.deleteByRoleId(id);
         rolePermissionRepository.deleteByRoleId(id);
-        roleRepository.deleteById(id);
+        existing.setDeleted(1);
+        roleRepository.save(existing);
     }
 
     @Override
@@ -175,6 +179,7 @@ public class RoleServiceImpl implements RoleService {
                 .description(role.getDescription())
                 .status(role.getStatus())
                 .sortOrder(role.getSortOrder())
+                .version(role.getVersion())
                 .createdTime(role.getCreatedTime())
                 .updatedTime(role.getUpdatedTime())
                 .build();
