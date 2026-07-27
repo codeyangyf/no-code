@@ -1,5 +1,7 @@
 package com.lc.bootstrap.filter;
 
+import com.lc.common.context.TenantContext;
+import com.lc.common.context.UserContext;
 import com.lc.system.security.JwtTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -30,6 +32,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(token)) {
                 String username = jwtTokenService.getUsernameFromToken(token);
                 Long userId = jwtTokenService.getUserIdFromToken(token);
+                Long tenantId = jwtTokenService.getTenantIdFromToken(token);
+
+                // 设置用户上下文与租户上下文
+                UserContext.set(UserContext.builder()
+                        .userId(userId)
+                        .tenantId(tenantId)
+                        .username(username)
+                        .build());
+                if (tenantId != null) {
+                    TenantContext.setTenantId(tenantId);
+                }
 
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userId, null, Collections.singletonList(new SimpleGrantedAuthority("USER"))
@@ -39,8 +52,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (Exception e) {
             SecurityContextHolder.clearContext();
+            UserContext.clear();
+            TenantContext.clear();
+        } finally {
+            try {
+                filterChain.doFilter(request, response);
+            } finally {
+                // 请求结束后清理 ThreadLocal，避免线程池复用导致的上下文泄漏
+                UserContext.clear();
+                TenantContext.clear();
+            }
         }
-        filterChain.doFilter(request, response);
     }
 
     private String extractToken(HttpServletRequest request) {
