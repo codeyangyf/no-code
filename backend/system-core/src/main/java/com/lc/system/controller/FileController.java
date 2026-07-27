@@ -4,6 +4,7 @@ import com.lc.common.context.UserContext;
 import com.lc.common.dto.Result;
 import com.lc.common.exception.BusinessException;
 import com.lc.common.exception.GlobalErrorCode;
+import com.lc.common.security.FileUploadValidator;
 import com.lc.common.storage.StorageProperties;
 import com.lc.common.storage.StorageService;
 import lombok.AllArgsConstructor;
@@ -23,7 +24,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -38,29 +38,13 @@ public class FileController {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
-    private static final Set<String> ALLOWED_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
-            "application/pdf", "text/plain", "application/json",
-            "application/zip", "application/x-zip-compressed"
-    );
-
     private final StorageService storageService;
     private final StorageProperties storageProperties;
+    private final FileUploadValidator fileUploadValidator;
 
     @PostMapping("/upload")
     public Result<FileUploadResponse> upload(@RequestParam("file") MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR);
-        }
-        if (file.getSize() > storageProperties.getMaxFileSize()) {
-            throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR);
-        }
-
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_TYPES.contains(contentType.toLowerCase())) {
-            throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR.getCode(),
-                    "不支持的文件类型: " + contentType);
-        }
+        fileUploadValidator.validateGeneral(file);
 
         Long tenantId = UserContext.getTenantId();
         if (tenantId == null) {
