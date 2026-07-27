@@ -1,5 +1,7 @@
 package com.lc.system.controller;
 
+import com.lc.common.annotation.AuditLog;
+import com.lc.common.annotation.PreAuthorize;
 import com.lc.common.context.UserContext;
 import com.lc.common.dto.Result;
 import com.lc.common.exception.BusinessException;
@@ -43,6 +45,8 @@ public class FileController {
     private final FileUploadValidator fileUploadValidator;
 
     @PostMapping("/upload")
+    @PreAuthorize("file:upload")
+    @AuditLog(action = "上传文件", resourceType = "FILE")
     public Result<FileUploadResponse> upload(@RequestParam("file") MultipartFile file) {
         fileUploadValidator.validateGeneral(file);
 
@@ -77,6 +81,7 @@ public class FileController {
     }
 
     @GetMapping("/{bucket}/{key:.+}")
+    @PreAuthorize("file:upload")
     public ResponseEntity<InputStreamResource> download(@PathVariable String bucket,
                                                           @PathVariable String key) {
         validateTenantAccess(key);
@@ -91,6 +96,8 @@ public class FileController {
     }
 
     @DeleteMapping("/{bucket}/{key:.+}")
+    @PreAuthorize("file:delete")
+    @AuditLog(action = "删除文件", resourceType = "FILE", resourceIdParam = "#key")
     public Result<Void> delete(@PathVariable String bucket, @PathVariable String key) {
         validateTenantAccess(key);
         storageService.delete(bucket, key);

@@ -1,5 +1,6 @@
 package com.lc.system.controller;
 
+import com.lc.common.annotation.AuditLog;
 import com.lc.common.annotation.PreAuthorize;
 import com.lc.common.context.UserContext;
 import com.lc.common.dto.Result;
@@ -37,12 +38,14 @@ public class MenuController {
 
     @PostMapping
     @PreAuthorize("system:menu:create")
+    @AuditLog(action = "创建菜单", resourceType = "MENU")
     public Result<MenuDTO.MenuResponse> create(@RequestBody MenuDTO.CreateRequest request) {
         return Result.success(menuService.create(request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("system:menu:update")
+    @AuditLog(action = "更新菜单", resourceType = "MENU", resourceIdParam = "#id")
     public Result<MenuDTO.MenuResponse> update(@PathVariable Long id,
                                                 @RequestBody MenuDTO.UpdateRequest request) {
         return Result.success(menuService.update(id, request));
@@ -50,6 +53,7 @@ public class MenuController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("system:menu:delete")
+    @AuditLog(action = "删除菜单", resourceType = "MENU", resourceIdParam = "#id")
     public Result<Void> delete(@PathVariable Long id) {
         menuService.delete(id);
         return Result.success();

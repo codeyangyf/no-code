@@ -1,5 +1,6 @@
 package com.lc.system.controller;
 
+import com.lc.common.annotation.AuditLog;
 import com.lc.common.annotation.PreAuthorize;
 import com.lc.common.dto.PageResult;
 import com.lc.common.dto.Result;
@@ -40,12 +41,14 @@ public class RoleController {
 
     @PostMapping
     @PreAuthorize("system:role:create")
+    @AuditLog(action = "创建角色", resourceType = "ROLE")
     public Result<RoleDTO.RoleResponse> create(@RequestBody RoleDTO.CreateRequest request) {
         return Result.success(roleService.create(request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("system:role:update")
+    @AuditLog(action = "更新角色", resourceType = "ROLE", resourceIdParam = "#id")
     public Result<RoleDTO.RoleResponse> update(@PathVariable Long id,
                                                 @RequestBody RoleDTO.UpdateRequest request) {
         return Result.success(roleService.update(id, request));
@@ -53,6 +56,7 @@ public class RoleController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("system:role:delete")
+    @AuditLog(action = "删除角色", resourceType = "ROLE", resourceIdParam = "#id")
     public Result<Void> delete(@PathVariable Long id) {
         roleService.delete(id);
         return Result.success();
@@ -60,6 +64,7 @@ public class RoleController {
 
     @PutMapping("/{id}/menus")
     @PreAuthorize("system:role:assign")
+    @AuditLog(action = "分配角色菜单", resourceType = "ROLE", resourceIdParam = "#id")
     public Result<Void> assignMenus(@PathVariable Long id,
                                      @RequestBody RoleDTO.AssignMenusRequest request) {
         roleService.assignMenus(id, request.getMenuIds());

@@ -34,6 +34,7 @@ public class JwtTokenService {
         claims.put("userId", user.getId());
         claims.put("username", user.getUsername());
         claims.put("tenantId", user.getTenantId());
+        claims.put("type", "access");
 
         LocalDateTime expireTime = LocalDateTime.now().plusMinutes(jwtConfig.getAccessTokenExpireMinutes());
         return Jwts.builder()
@@ -48,6 +49,8 @@ public class JwtTokenService {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId());
         claims.put("username", user.getUsername());
+        claims.put("tenantId", user.getTenantId());
+        claims.put("type", "refresh");
 
         LocalDateTime expireTime = LocalDateTime.now().plusDays(jwtConfig.getRefreshTokenExpireDays());
         return Jwts.builder()
@@ -83,5 +86,10 @@ public class JwtTokenService {
     public Long getTenantIdFromToken(String token) {
         Claims claims = parseToken(token);
         return claims.get("tenantId", Long.class);
+    }
+
+    public String getTokenType(String token) {
+        Claims claims = parseToken(token);
+        return claims.get("type", String.class);
     }
 }

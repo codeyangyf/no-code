@@ -1,5 +1,6 @@
 package com.lc.system.controller;
 
+import com.lc.common.annotation.AuditLog;
 import com.lc.common.annotation.PreAuthorize;
 import com.lc.common.context.UserContext;
 import com.lc.common.dto.PageResult;
@@ -35,12 +36,14 @@ public class UserController {
 
     @PostMapping
     @PreAuthorize("system:user:create")
+    @AuditLog(action = "创建用户", resourceType = "USER")
     public Result<UserDTO.UserResponse> create(@RequestBody UserDTO.CreateRequest request) {
         return Result.success(userService.create(request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("system:user:update")
+    @AuditLog(action = "更新用户", resourceType = "USER", resourceIdParam = "#id")
     public Result<UserDTO.UserResponse> update(@PathVariable Long id,
                                                 @RequestBody UserDTO.UpdateRequest request) {
         return Result.success(userService.update(id, request));
@@ -48,6 +51,7 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("system:user:delete")
+    @AuditLog(action = "删除用户", resourceType = "USER", resourceIdParam = "#id")
     public Result<Void> delete(@PathVariable Long id) {
         userService.deleteUser(id);
         return Result.success();
@@ -63,6 +67,7 @@ public class UserController {
 
     @PutMapping("/{id}/password")
     @PreAuthorize("system:user:reset")
+    @AuditLog(action = "重置用户密码", resourceType = "USER", resourceIdParam = "#id")
     public Result<Void> resetPassword(@PathVariable Long id,
                                        @RequestBody UserDTO.ResetPasswordRequest request) {
         userService.resetPassword(id, request.getPassword());
@@ -71,6 +76,7 @@ public class UserController {
 
     @PutMapping("/{id}/roles")
     @PreAuthorize("system:user:assign")
+    @AuditLog(action = "分配用户角色", resourceType = "USER", resourceIdParam = "#id")
     public Result<Void> assignRoles(@PathVariable Long id,
                                      @RequestBody UserDTO.AssignRolesRequest request) {
         userService.assignRoles(id, request.getRoleIds());
