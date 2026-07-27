@@ -1,0 +1,10 @@
+com/lc/system/entity/SysUserRole.class
+com/lc/system/entity/SysPermission.class
+com/lc/system/entity/SysRole.class
+com/lc/system/entity/SysUser.class
+com/lc/system/entity/SysTenant.class
+com/lc/system/entity/SysDict.class
+com/lc/system/entity/ProjectInfo.class
+com/lc/system/entity/SysOrg.class
+com/lc/system/entity/SysMenu.class
+com/lc/system/entity/ProjectMember.class

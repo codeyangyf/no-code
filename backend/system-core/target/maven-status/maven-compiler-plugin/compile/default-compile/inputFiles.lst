@@ -1,0 +1,10 @@
+/workspace/backend/system-core/src/main/java/com/lc/system/entity/SysPermission.java
+/workspace/backend/system-core/src/main/java/com/lc/system/entity/SysDict.java
+/workspace/backend/system-core/src/main/java/com/lc/system/entity/ProjectInfo.java
+/workspace/backend/system-core/src/main/java/com/lc/system/entity/SysMenu.java
+/workspace/backend/system-core/src/main/java/com/lc/system/entity/SysRole.java
+/workspace/backend/system-core/src/main/java/com/lc/system/entity/SysTenant.java
+/workspace/backend/system-core/src/main/java/com/lc/system/entity/SysUser.java
+/workspace/backend/system-core/src/main/java/com/lc/system/entity/ProjectMember.java
+/workspace/backend/system-core/src/main/java/com/lc/system/entity/SysOrg.java
+/workspace/backend/system-core/src/main/java/com/lc/system/entity/SysUserRole.java
