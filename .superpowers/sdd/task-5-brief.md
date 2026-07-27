@@ -1,248 +1,81 @@
-# Task 5: system-core 模块 - JWT 与 Token 服务
+## Task 5: RBAC权限体系 ⬜ 待实施
 
-**Goal:** 创建 JWT 配置类、认证 DTO、JWT Token 服务和 Refresh Token 服务。
+> 设计文档 Task 5：用户角色、菜单权限、项目成员角色、接口权限声明
+
+**目标：** 实现用户-角色-权限三层模型的完整CRUD和接口级权限控制。
 
 **Files:**
-- Create: `backend/system-core/src/main/java/com/lc/system/config/JwtConfig.java`
-- Create: `backend/system-core/src/main/java/com/lc/system/dto/AuthDTO.java`
-- Create: `backend/system-core/src/main/java/com/lc/system/security/JwtTokenService.java`
-- Create: `backend/system-core/src/main/java/com/lc/system/security/RefreshTokenService.java`
+- Create: `backend/common/src/main/java/com/lc/common/annotation/PreAuthorize.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/repository/SysMenuRepository.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/repository/SysPermissionRepository.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/repository/SysOrgRepository.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/repository/SysDictRepository.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/dto/UserDTO.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/dto/RoleDTO.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/dto/MenuDTO.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/service/PermissionService.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/service/RoleService.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/service/MenuService.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/service/impl/PermissionServiceImpl.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/service/impl/RoleServiceImpl.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/service/impl/MenuServiceImpl.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/controller/RoleController.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/controller/MenuController.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/controller/UserController.java`
+- Create: `backend/bootstrap/src/main/java/com/lc/bootstrap/interceptor/PermissionInterceptor.java`
+- Modify: `backend/bootstrap/src/main/java/com/lc/bootstrap/config/WebMvcConfig.java`（注册权限拦截器）
 
-**JwtConfig.java:**
+**Interfaces:**
+- Consumes: `UserContext`, `SysRoleRepository`（已存在）, `SysUserRoleRepository`（已存在）, `SysMenu/SysPermission`实体（已存在）
+- Produces: `PermissionService`（权限校验）, `PreAuthorize`注解, `PermissionInterceptor`, 角色/菜单/用户管理REST接口
 
+**关键设计：**
+1. 菜单权限：树形菜单结构，角色通过 sys_role_menu 关联菜单（需确认该关联表是否存在，若不存在需新增迁移脚本）
+2. 项目成员角色：viewer/editor/admin/publisher 四级，存储在 project_member 表的 role 字段
+3. 接口权限声明：`@PreAuthorize("user:list")` 注解，PermissionInterceptor 解析注解并调用 PermissionService 校验
+
+**PreAuthorize.java：**
 ```java
-package com.lc.system.config;
+package com.lc.common.annotation;
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import java.lang.annotation.*;
 
-@Data
-@Configuration
-@ConfigurationProperties(prefix = "jwt")
-public class JwtConfig {
-    private String secret = "your-256-bit-secret-key-here-must-be-at-least-32-characters";
-    private int accessTokenExpireMinutes = 15;
-    private int refreshTokenExpireDays = 7;
+@Target({ElementType.METHOD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface PreAuthorize {
+    /** 所需权限码，多个用逗号分隔 */
+    String value() default "";
+    /** true=需全部权限，false=任一权限即可 */
+    boolean requireAll() default false;
 }
 ```
 
-**AuthDTO.java:**
-
+**PermissionService.java：**
 ```java
-package com.lc.system.dto;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class AuthDTO {
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class LoginRequest {
-        private String username;
-        private String password;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class LoginResponse {
-        private String accessToken;
-        private String refreshToken;
-        private LocalDateTime accessTokenExpireTime;
-        private LocalDateTime refreshTokenExpireTime;
-        private UserInfo user;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class UserInfo {
-        private Long id;
-        private String username;
-        private String realName;
-        private String email;
-        private String phone;
-        private Long tenantId;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class RefreshRequest {
-        private String refreshToken;
-    }
+public interface PermissionService {
+    Set<String> getUserPermissions(Long userId);
+    boolean hasPermission(Long userId, String permission);
+    boolean hasAnyPermission(Long userId, String... permissions);
+    boolean hasAllPermissions(Long userId, String... permissions);
+    List<Long> getUserRoleIds(Long userId);
 }
 ```
 
-**JwtTokenService.java:**
+**需确认：** sys_role_menu 关联表是否在 V3/V5 迁移脚本中已创建。若未创建，Task 5-1 需新增迁移脚本。
 
-```java
-package com.lc.system.security;
+- [ ] **Task 5-1: 确认/补建 sys_role_menu 关联表迁移脚本**
+- [ ] **Task 5-2: 创建 PreAuthorize 注解 + PermissionService 接口 + PermissionServiceImpl**
+- [ ] **Task 5-3: 创建 PermissionInterceptor + 注册到 WebMvcConfig**
+- [ ] **Task 5-4: 创建 RoleService/MenuService + 实现 + Repository + DTO**
+- [ ] **Task 5-5: 创建 RoleController/MenuController/UserController**
+- [ ] **Task 5-6: 编译验证 + Commit**
 
-import com.lc.common.exception.BusinessException;
-import com.lc.common.exception.GlobalErrorCode;
-import com.lc.system.config.JwtConfig;
-import com.lc.system.entity.SysUser;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+---
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+### Task 5 验收
+- [ ] 角色管理接口正常（创建、编辑、删除、分配菜单）
+- [ ] 菜单管理接口正常（树形结构返回）
+- [ ] @PreAuthorize 注解生效，无权限返回 403
+- [ ] 用户管理接口正常（分页查询、创建、编辑、删除、重置密码）
 
-@Service
-@RequiredArgsConstructor
-public class JwtTokenService {
-
-    private final JwtConfig jwtConfig;
-
-    private SecretKey getSigningKey() {
-        byte[] keyBytes = jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
-
-    public String generateAccessToken(SysUser user) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", user.getId());
-        claims.put("username", user.getUsername());
-        claims.put("tenantId", user.getTenantId());
-
-        LocalDateTime expireTime = LocalDateTime.now().plusMinutes(jwtConfig.getAccessTokenExpireMinutes());
-        return Jwts.builder()
-                .claims(claims)
-                .subject(user.getUsername())
-                .expiration(Date.from(expireTime.atZone(ZoneId.systemDefault()).toInstant()))
-                .signWith(getSigningKey(), Jwts.SIG.HS256)
-                .compact();
-    }
-
-    public String generateRefreshToken(SysUser user) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", user.getId());
-        claims.put("username", user.getUsername());
-
-        LocalDateTime expireTime = LocalDateTime.now().plusDays(jwtConfig.getRefreshTokenExpireDays());
-        return Jwts.builder()
-                .claims(claims)
-                .subject(user.getUsername())
-                .expiration(Date.from(expireTime.atZone(ZoneId.systemDefault()).toInstant()))
-                .signWith(getSigningKey(), Jwts.SIG.HS256)
-                .compact();
-    }
-
-    public Claims parseToken(String token) {
-        try {
-            return Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-        } catch (Exception e) {
-            throw new BusinessException(GlobalErrorCode.TOKEN_INVALID);
-        }
-    }
-
-    public Long getUserIdFromToken(String token) {
-        Claims claims = parseToken(token);
-        return claims.get("userId", Long.class);
-    }
-
-    public String getUsernameFromToken(String token) {
-        Claims claims = parseToken(token);
-        return claims.getSubject();
-    }
-
-    public Long getTenantIdFromToken(String token) {
-        Claims claims = parseToken(token);
-        return claims.get("tenantId", Long.class);
-    }
-}
-```
-
-**RefreshTokenService.java:**
-
-```java
-package com.lc.system.security;
-
-import com.lc.common.exception.BusinessException;
-import com.lc.common.exception.GlobalErrorCode;
-import com.lc.system.config.JwtConfig;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
-
-import java.util.concurrent.TimeUnit;
-
-@Service
-@RequiredArgsConstructor
-public class RefreshTokenService {
-    private final RedisTemplate<String, Object> redisTemplate;
-    private final JwtConfig jwtConfig;
-
-    private static final String REFRESH_TOKEN_KEY = "refresh:%s";
-
-    public void saveRefreshToken(Long userId, String refreshToken) {
-        String key = String.format(REFRESH_TOKEN_KEY, userId);
-        redisTemplate.opsForValue().set(key, refreshToken, jwtConfig.getRefreshTokenExpireDays(), TimeUnit.DAYS);
-    }
-
-    public String getRefreshToken(Long userId) {
-        String key = String.format(REFRESH_TOKEN_KEY, userId);
-        Object token = redisTemplate.opsForValue().get(key);
-        return token != null ? token.toString() : null;
-    }
-
-    public void invalidateRefreshToken(Long userId) {
-        String key = String.format(REFRESH_TOKEN_KEY, userId);
-        redisTemplate.delete(key);
-    }
-
-    public boolean validateRefreshToken(Long userId, String token) {
-        String storedToken = getRefreshToken(userId);
-        if (storedToken == null) {
-            throw new BusinessException(GlobalErrorCode.REFRESH_TOKEN_EXPIRED);
-        }
-        if (!storedToken.equals(token)) {
-            throw new BusinessException(GlobalErrorCode.REFRESH_TOKEN_INVALID);
-        }
-        return true;
-    }
-}
-```
-
-**Steps:**
-1. 创建 JwtConfig.java
-2. 创建 AuthDTO.java
-3. 创建 JwtTokenService.java
-4. 创建 RefreshTokenService.java
-5. 编译验证：`cd backend && mvn clean compile -q -pl system-core -am`
-6. Commit，提交信息："feat: system-core模块 - JWT与Token服务"
-
-**Global Constraints:**
-- Java: 17
-- Spring Boot: 3.2.5
-- Maven: 3.9.x
-- JJWT: 0.12.5
-
-__tr_native_ec=$?; pwd -P >| '/var/log/tool/jobs/job-e7c83eb457a8441cacadbf2402a3cd14/cwd.txt'; exit "$__tr_native_ec"
