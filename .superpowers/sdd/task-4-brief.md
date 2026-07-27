@@ -1,183 +1,63 @@
-# Task 4: system-core 模块 - Repository 与 UserService
+## Task 4: 多租户上下文 ⬜ 待实施
 
-**Goal:** 创建 system-core 模块的 Repository 接口和 UserService 接口及实现。
+> 设计文档 Task 4：租户识别、租户内唯一约束、越权拦截器
+
+**目标：** 从JWT解析租户ID写入ThreadLocal上下文，提供租户CRUD接口，拦截器校验越权访问。
 
 **Files:**
-- Create: `backend/system-core/src/main/java/com/lc/system/repository/SysUserRepository.java`
-- Create: `backend/system-core/src/main/java/com/lc/system/repository/SysRoleRepository.java`
-- Create: `backend/system-core/src/main/java/com/lc/system/repository/SysUserRoleRepository.java`
-- Create: `backend/system-core/src/main/java/com/lc/system/service/UserService.java`
-- Create: `backend/system-core/src/main/java/com/lc/system/service/impl/UserServiceImpl.java`
+- Modify: `backend/bootstrap/src/main/java/com/lc/bootstrap/filter/JwtAuthenticationFilter.java`（整合UserContext设置）
+- Create: `backend/common/src/main/java/com/lc/common/annotation/TenantCheck.java`
+- Create: `backend/bootstrap/src/main/java/com/lc/bootstrap/interceptor/TenantInterceptor.java`
+- Create: `backend/bootstrap/src/main/java/com/lc/bootstrap/config/WebMvcConfig.java`（注册拦截器，如不存在则创建）
+- Create: `backend/system-core/src/main/java/com/lc/system/repository/SysTenantRepository.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/dto/TenantDTO.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/dto/PageRequest.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/service/TenantService.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/service/impl/TenantServiceImpl.java`
+- Create: `backend/system-core/src/main/java/com/lc/system/controller/TenantController.java`
 
-**SysUserRepository.java:**
+**Interfaces:**
+- Consumes: `JwtTokenService.getTenantIdFromToken()`, `UserContext`（已存在）, `SysTenant`实体（已存在）
+- Produces: `TenantInterceptor`（越权拦截）, `TenantService`（租户CRUD）, `TenantController`（REST接口）
 
+**关键设计：**
+1. 租户识别：修改 `JwtAuthenticationFilter`，在解析token后调用 `UserContext.set()` 设置用户上下文（当前filter只设置了SecurityContext，没设置UserContext）
+2. 租户内唯一约束：数据库层已有复合唯一索引（如 sys_user 的 tenant_id+username），Service层做前置校验并返回友好错误
+3. 越权拦截：`@TenantCheck` 注解 + `TenantInterceptor`，校验请求参数中的 tenantId 与当前用户 tenantId 一致
+
+**TenantCheck.java：**
 ```java
-package com.lc.system.repository;
+package com.lc.common.annotation;
 
-import com.lc.system.entity.SysUser;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import java.lang.annotation.*;
 
-import java.util.Optional;
-
-@Repository
-public interface SysUserRepository extends JpaRepository<SysUser, Long> {
-    Optional<SysUser> findByUsername(String username);
-    Optional<SysUser> findByTenantIdAndUsername(Long tenantId, String username);
-    boolean existsByUsername(String username);
-    boolean existsByTenantIdAndUsername(Long tenantId, String username);
+@Target({ElementType.METHOD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface TenantCheck {
+    /** 参数中租户ID的字段名，默认为 tenantId */
+    String tenantIdParam() default "tenantId";
 }
 ```
 
-**SysRoleRepository.java:**
-
+**TenantInterceptor.java 核心逻辑：**
 ```java
-package com.lc.system.repository;
-
-import com.lc.system.entity.SysRole;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-import java.util.Optional;
-
-@Repository
-public interface SysRoleRepository extends JpaRepository<SysRole, Long> {
-    Optional<SysRole> findByRoleCode(String roleCode);
-    Optional<SysRole> findByTenantIdAndRoleCode(Long tenantId, String roleCode);
-}
+// 1. 从 UserContext.getTenantId() 获取当前用户租户ID
+// 2. 从请求参数中提取目标租户ID（@TenantCheck指定的参数名）
+// 3. 若不一致，抛出 BusinessException(PERMISSION_DENIED)
+// 4. 若 UserContext.getTenantId() 为 null，跳过（如超级管理员）
 ```
 
-**SysUserRoleRepository.java:**
+- [ ] **Task 4-1: 修改 JwtAuthenticationFilter，整合 UserContext 设置**
+- [ ] **Task 4-2: 创建 TenantCheck 注解 + TenantInterceptor 拦截器**
+- [ ] **Task 4-3: 创建 WebMvcConfig 注册拦截器**
+- [ ] **Task 4-4: 创建 SysTenantRepository + TenantDTO + PageRequest + TenantService + TenantServiceImpl + TenantController**
+- [ ] **Task 4-5: 编译验证 + Commit**
 
-```java
-package com.lc.system.repository;
+---
 
-import com.lc.system.entity.SysUserRole;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+### Task 4 验收
+- [ ] 请求携带JWT时，UserContext 中能获取到 tenantId
+- [ ] 租户CRUD接口正常工作（GET/POST/PUT/DELETE /api/system/tenants）
+- [ ] @TenantCheck 注解生效，跨租户访问返回 403
 
-import java.util.List;
-
-@Repository
-public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> {
-    List<SysUserRole> findByUserId(Long userId);
-    void deleteByUserId(Long userId);
-}
-```
-
-**UserService.java:**
-
-```java
-package com.lc.system.service;
-
-import com.lc.system.entity.SysUser;
-
-public interface UserService {
-    SysUser findByUsername(String username);
-    SysUser findByTenantIdAndUsername(Long tenantId, String username);
-    SysUser findById(Long id);
-    SysUser createUser(SysUser user);
-    SysUser updateUser(SysUser user);
-    void deleteUser(Long id);
-    boolean verifyPassword(String rawPassword, String encodedPassword);
-}
-```
-
-**UserServiceImpl.java:**
-
-```java
-package com.lc.system.service.impl;
-
-import com.lc.common.exception.BusinessException;
-import com.lc.common.exception.GlobalErrorCode;
-import com.lc.common.util.PasswordUtil;
-import com.lc.system.entity.SysUser;
-import com.lc.system.repository.SysUserRepository;
-import com.lc.system.service.UserService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
-@RequiredArgsConstructor
-public class UserServiceImpl implements UserService {
-
-    private final SysUserRepository userRepository;
-
-    @Override
-    public SysUser findByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new BusinessException(GlobalErrorCode.USER_NOT_FOUND));
-    }
-
-    @Override
-    public SysUser findByTenantIdAndUsername(Long tenantId, String username) {
-        return userRepository.findByTenantIdAndUsername(tenantId, username)
-                .orElseThrow(() -> new BusinessException(GlobalErrorCode.USER_NOT_FOUND));
-    }
-
-    @Override
-    public SysUser findById(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(GlobalErrorCode.USER_NOT_FOUND));
-    }
-
-    @Override
-    @Transactional
-    public SysUser createUser(SysUser user) {
-        if (userRepository.existsByUsername(user.getUsername())) {
-            throw new BusinessException(GlobalErrorCode.DATA_CONFLICT);
-        }
-        if (user.getPassword() != null) {
-            user.setPassword(PasswordUtil.encode(user.getPassword()));
-        }
-        return userRepository.save(user);
-    }
-
-    @Override
-    @Transactional
-    public SysUser updateUser(SysUser user) {
-        SysUser existing = findById(user.getId());
-        if (!existing.getUsername().equals(user.getUsername()) &&
-                userRepository.existsByUsername(user.getUsername())) {
-            throw new BusinessException(GlobalErrorCode.DATA_CONFLICT);
-        }
-        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            user.setPassword(PasswordUtil.encode(user.getPassword()));
-        } else {
-            user.setPassword(existing.getPassword());
-        }
-        return userRepository.save(user);
-    }
-
-    @Override
-    @Transactional
-    public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new BusinessException(GlobalErrorCode.USER_NOT_FOUND);
-        }
-        userRepository.deleteById(id);
-    }
-
-    @Override
-    public boolean verifyPassword(String rawPassword, String encodedPassword) {
-        return PasswordUtil.matches(rawPassword, encodedPassword);
-    }
-}
-```
-
-**Steps:**
-1. 创建 SysUserRepository.java
-2. 创建 SysRoleRepository.java
-3. 创建 SysUserRoleRepository.java
-4. 创建 UserService.java
-5. 创建 UserServiceImpl.java
-6. 编译验证：`cd backend && mvn clean compile -q -pl system-core -am`
-7. Commit，提交信息："feat: system-core模块 - Repository与UserService"
-
-**Global Constraints:**
-- Java: 17
-- Spring Boot: 3.2.5
-- Maven: 3.9.x
-
-__tr_native_ec=$?; pwd -P >| '/var/log/tool/jobs/job-a17d8d0b458a46c2ac5c9bc573a1937c/cwd.txt'; exit "$__tr_native_ec"

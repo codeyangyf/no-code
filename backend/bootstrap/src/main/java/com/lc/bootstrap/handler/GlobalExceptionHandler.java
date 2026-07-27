@@ -2,8 +2,10 @@ package com.lc.bootstrap.handler;
 
 import com.lc.common.dto.Result;
 import com.lc.common.exception.BusinessException;
+import com.lc.common.exception.GlobalErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -57,5 +59,12 @@ public class GlobalExceptionHandler {
     public Result<Void> handleGenericException(Exception e) {
         log.error("Unexpected error: ", e);
         return Result.fail(500, "系统内部错误");
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Result<Void> handleOptimisticLockingFailure(ObjectOptimisticLockingFailureException e) {
+        log.warn("Optimistic locking conflict: {}", e.getMessage());
+        return Result.fail(GlobalErrorCode.DATA_CONFLICT.getCode(), "数据已被他人修改，请刷新后重试");
     }
 }

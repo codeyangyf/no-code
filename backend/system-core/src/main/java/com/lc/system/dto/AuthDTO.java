@@ -13,6 +13,7 @@ public class AuthDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class LoginRequest {
+        private String tenantCode;
         private String username;
         private String password;
     }

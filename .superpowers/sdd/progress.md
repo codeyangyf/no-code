@@ -8,3 +8,5 @@ Task 7: complete (commits 7a9d249..d6311f9, review clean)
 Task 8: complete (commits d6311f9d..a7eb1bb3, review clean)
 Task 9: complete (commits a7eb1bb3..deecda5c, review clean)
 Task 10: complete (commits deecda5c..282aeff7, review clean)
+Task 4 (Phase1): complete (commits cd57019d..d5fad041, review clean after fix)
+---

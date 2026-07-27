@@ -1,0 +1,5 @@
+-- 为可编辑配置表添加乐观锁版本字段
+ALTER TABLE sys_tenant ADD COLUMN version BIGINT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号';
+ALTER TABLE sys_user   ADD COLUMN version BIGINT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号';
+ALTER TABLE sys_role   ADD COLUMN version BIGINT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号';
+ALTER TABLE sys_menu   ADD COLUMN version BIGINT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号';
