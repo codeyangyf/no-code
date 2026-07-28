@@ -1,11 +1,79 @@
-import { Layout, Menu, Avatar, Dropdown } from 'antd'
-import { LayoutDashboard, Settings, Users, FolderOpen, LogOut } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Layout, Menu, Avatar, Dropdown, Spin } from 'antd'
+import {
+  LayoutDashboard,
+  Settings,
+  Users,
+  FolderOpen,
+  LogOut,
+  Team,
+  Menu as MenuIcon,
+  Building,
+  FileSearch,
+  FolderOpen as FolderIcon
+} from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { getMenuTree, type Menu as MenuType } from '../api'
 
 const { Header, Sider, Content } = Layout
 
+const iconMap: Record<string, React.ReactNode> = {
+  'LayoutDashboard': <LayoutDashboard />,
+  'Settings': <Settings />,
+  'User': <Users />,
+  'Team': <Team />,
+  'Menu': <MenuIcon />,
+  'Building': <Building />,
+  'FileSearch': <FileSearch />,
+  'FolderOpen': <FolderIcon />
+}
+
+const getIcon = (iconName: string | null) => {
+  if (!iconName) return <LayoutDashboard />
+  return iconMap[iconName] || <LayoutDashboard />
+}
+
+const buildMenuItems = (menus: MenuType[]): any[] => {
+  return menus.map(menu => {
+    if (menu.menuType === 'DIRECTORY') {
+      return {
+        key: menu.id.toString(),
+        icon: getIcon(menu.icon),
+        label: menu.menuName,
+        children: menu.children ? buildMenuItems(menu.children) : []
+      }
+    } else if (menu.menuType === 'MENU') {
+      return {
+        key: menu.id.toString(),
+        icon: getIcon(menu.icon),
+        label: menu.menuName
+      }
+    }
+    return null
+  }).filter(Boolean)
+}
+
 function Dashboard() {
   const { user, handleLogout } = useAuth()
+  const [menus, setMenus] = useState<MenuType[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadMenus()
+  }, [])
+
+  const loadMenus = async () => {
+    try {
+      const result = await getMenuTree()
+      if (result.code === 0) {
+        setMenus(result.data)
+      }
+    } catch (error) {
+      console.error('Failed to load menus:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const menuItems = [
     { key: '1', icon: <Settings />, label: '设置' },
@@ -19,12 +87,7 @@ function Dashboard() {
     }
   ]
 
-  const sideMenuItems = [
-    { key: '1', icon: <LayoutDashboard />, label: '仪表盘' },
-    { key: '2', icon: <FolderOpen />, label: '项目管理' },
-    { key: '3', icon: <Users />, label: '成员管理' },
-    { key: '4', icon: <Settings />, label: '系统设置' }
-  ]
+  const sideMenuItems = buildMenuItems(menus)
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -43,11 +106,15 @@ function Dashboard() {
         >
           低代码平台
         </div>
-        <Menu
-          mode="inline"
-          defaultSelectedKeys={['1']}
-          items={sideMenuItems}
-        />
+        <Spin spinning={loading}>
+          <Menu
+            mode="inline"
+            defaultSelectedKeys={sideMenuItems.length > 0 ? [sideMenuItems[0].key] : ['1']}
+            items={sideMenuItems.length > 0 ? sideMenuItems : [
+              { key: '1', icon: <LayoutDashboard />, label: '仪表盘' }
+            ]}
+          />
+        </Spin>
       </Sider>
 
       <Layout>
