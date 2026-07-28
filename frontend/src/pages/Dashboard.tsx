@@ -6,7 +6,7 @@ import {
   Users,
   FolderOpen,
   LogOut,
-  Team,
+  Users as Team,
   Menu as MenuIcon,
   Building,
   FileSearch,
