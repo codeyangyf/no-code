@@ -3,15 +3,18 @@ package com.lc.project.service.impl;
 import com.lc.project.service.DatabaseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -108,38 +111,38 @@ public class DatabaseServiceImpl implements DatabaseService {
     @Override
     public void executeBaselineMigration(Long projectId) {
         String dbName = "project_" + projectId;
-        String dbUrl = getAdminUrl() + "/" + dbName;
-
-        try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
-            Flyway flyway = Flyway.configure()
-                    .dataSource(new SingleConnectionDataSource(conn, true))
-                    .locations("classpath:db/project-migration")
-                    .baselineOnMigrate(true)
-                    .load();
-            flyway.migrate();
-            log.info("Executed baseline migration for project database: {}", dbName);
-        } catch (Exception e) {
-            log.error("Failed to execute baseline migration for project database: {}", dbName, e);
-            throw new RuntimeException("Failed to execute baseline migration", e);
-        }
+        executeBaselineSql(dbName);
     }
 
     @Override
     public void executeSandboxBaselineMigration(Long projectId) {
         String dbName = "project_" + projectId + "_sandbox";
+        executeBaselineSql(dbName);
+    }
+
+    private void executeBaselineSql(String dbName) {
         String dbUrl = getAdminUrl() + "/" + dbName;
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
-            Flyway flyway = Flyway.configure()
-                    .dataSource(new SingleConnectionDataSource(conn, true))
-                    .locations("classpath:db/project-migration")
-                    .baselineOnMigrate(true)
-                    .load();
-            flyway.migrate();
-            log.info("Executed baseline migration for sandbox database: {}", dbName);
+            JdbcTemplate projectJdbc = new JdbcTemplate();
+            projectJdbc.setDataSource(new SingleConnectionDataSource(conn, true));
+
+            ClassPathResource resource = new ClassPathResource("db/project-migration/V1__baseline.sql");
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()))) {
+                String sql = reader.lines().collect(Collectors.joining("\n"));
+                // 按分号分割并逐条执行
+                String[] statements = sql.split(";");
+                for (String stmt : statements) {
+                    String trimmed = stmt.trim();
+                    if (!trimmed.isEmpty() && !trimmed.startsWith("--")) {
+                        projectJdbc.execute(trimmed);
+                    }
+                }
+            }
+            log.info("Executed baseline migration for project database: {}", dbName);
         } catch (Exception e) {
-            log.error("Failed to execute baseline migration for sandbox database: {}", dbName, e);
-            throw new RuntimeException("Failed to execute sandbox baseline migration", e);
+            log.error("Failed to execute baseline migration for project database: {}", dbName, e);
+            throw new RuntimeException("Failed to execute baseline migration", e);
         }
     }
 
