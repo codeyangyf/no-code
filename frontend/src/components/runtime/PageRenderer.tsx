@@ -1,6 +1,8 @@
 import React from 'react';
-import { Card, Input, Button, Table, DatePicker, Select, Checkbox, Radio, TextArea, Upload, message } from 'antd';
+import { Card, Input, Button, DatePicker, Select, Checkbox, Radio, Upload, message, Divider, Table } from 'antd';
 import type { UploadProps } from 'antd';
+
+const { TextArea } = Input;
 
 interface ComponentConfig {
   id: string;
@@ -16,7 +18,7 @@ interface PageRendererProps {
 
 const ComponentRegistry: Record<string, React.ComponentType<{ component: ComponentConfig }>> = {
   Text: ({ component }) => (
-    <div style={component.style}>{component.props?.text || ''}</div>
+    <div style={component.style}>{String(component.props?.text || '')}</div>
   ),
   Input: ({ component }) => (
     <Input
@@ -44,13 +46,13 @@ const ComponentRegistry: Record<string, React.ComponentType<{ component: Compone
     <Select
       placeholder={component.props?.placeholder as string}
       style={component.style}
-      options={component.props?.options as Select.Option[]}
+      options={(component.props?.options as { value: string; label: string }[]) || []}
       {...(component.props as Record<string, unknown>)}
     />
   ),
   Radio: ({ component }) => (
     <Radio.Group
-      options={component.props?.options as Radio.RadioOption[]}
+      options={(component.props?.options as { value: string; label: string }[]) || []}
       {...(component.props as Record<string, unknown>)}
     />
   ),
@@ -78,20 +80,20 @@ const ComponentRegistry: Record<string, React.ComponentType<{ component: Compone
       style={component.style}
       {...(component.props as Record<string, unknown>)}
     >
-      {component.name || component.props?.children}
+      {component.name || String(component.props?.children || '')}
     </Button>
   ),
   Card: ({ component }) => (
     <Card
-      title={component.name || component.props?.title}
+      title={component.name || (component.props?.title as React.ReactNode)}
       style={component.style}
       {...(component.props as Record<string, unknown>)}
     />
   ),
   Table: ({ component }) => (
     <Table
-      columns={component.props?.columns as Table.Column[]}
-      dataSource={component.props?.dataSource as unknown[]}
+      columns={(component.props?.columns || []) as { title: string; dataIndex: string; key: string }[]}
+      dataSource={(component.props?.dataSource || []) as unknown[]}
       style={component.style}
       pagination={{ pageSize: 10 }}
       {...(component.props as Record<string, unknown>)}
@@ -100,7 +102,7 @@ const ComponentRegistry: Record<string, React.ComponentType<{ component: Compone
   Form: ({ component }) => (
     <Card title={component.name}>
       <div style={{ padding: 16 }}>
-        {component.props?.fields?.map((field: ComponentConfig) => (
+        {((component.props?.fields || []) as ComponentConfig[]).map((field: ComponentConfig) => (
           <div key={field.id} style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
               {field.name}
@@ -114,7 +116,7 @@ const ComponentRegistry: Record<string, React.ComponentType<{ component: Compone
   ),
   Layout: ({ component }) => (
     <div style={{ display: 'flex', gap: 16, ...component.style }}>
-      {component.props?.children?.map((child: ComponentConfig) => (
+      {((component.props?.children || []) as ComponentConfig[]).map((child: ComponentConfig) => (
         <div key={child.id} style={{ flex: 1 }}>
           <RenderComponent component={child} />
         </div>
@@ -122,8 +124,8 @@ const ComponentRegistry: Record<string, React.ComponentType<{ component: Compone
     </div>
   ),
   Grid: ({ component }) => (
-    <div style={{ display: 'grid', gridTemplateColumns: component.props?.columns || 'repeat(2, 1fr)', gap: 16, ...component.style }}>
-      {component.props?.children?.map((child: ComponentConfig) => (
+    <div style={{ display: 'grid', gridTemplateColumns: (component.props?.columns as string) || 'repeat(2, 1fr)', gap: 16, ...component.style }}>
+      {((component.props?.children || []) as ComponentConfig[]).map((child: ComponentConfig) => (
         <div key={child.id}>
           <RenderComponent component={child} />
         </div>
@@ -131,7 +133,7 @@ const ComponentRegistry: Record<string, React.ComponentType<{ component: Compone
     </div>
   ),
   Divider: ({ component }) => (
-    <Card.Divider style={component.style}>{component.name}</Card.Divider>
+    <Divider style={component.style}>{component.name}</Divider>
   ),
   FileUpload: ({ component }) => {
     const props: UploadProps = {

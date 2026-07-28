@@ -3,36 +3,36 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Layout, Menu, Avatar, Dropdown, Spin } from 'antd'
 import type { MenuProps } from 'antd'
 import {
-  LayoutDashboard,
-  Settings,
-  Users,
-  FolderOpen,
-  LogOut,
-  Users as Team,
-  Menu as MenuIcon,
-  Building,
-  FileSearch,
-  FolderOpen as FolderIcon
-} from 'lucide-react'
+  SettingOutlined,
+  UserOutlined,
+  LogoutOutlined,
+  TeamOutlined,
+  MenuOutlined,
+  HomeOutlined,
+  FolderOutlined,
+  FileSearchOutlined,
+  BankOutlined
+} from '@ant-design/icons'
 import { useAuth } from '../hooks/useAuth'
-import { getMenuTree, type Menu as MenuType } from '../api'
+import { getMenuTree } from '../api'
+import type { Menu as MenuType } from '../api/menu'
 
 const { Header, Sider, Content } = Layout
 
 const iconMap: Record<string, React.ReactNode> = {
-  'LayoutDashboard': <LayoutDashboard />,
-  'Settings': <Settings />,
-  'User': <Users />,
-  'Team': <Team />,
-  'Menu': <MenuIcon />,
-  'Building': <Building />,
-  'FileSearch': <FileSearch />,
-  'FolderOpen': <FolderIcon />
+  'LayoutDashboard': <HomeOutlined />,
+  'Settings': <SettingOutlined />,
+  'User': <UserOutlined />,
+  'Team': <TeamOutlined />,
+  'Menu': <MenuOutlined />,
+  'Building': <BankOutlined />,
+  'FileSearch': <FileSearchOutlined />,
+  'FolderOpen': <FolderOutlined />
 }
 
 const getIcon = (iconName: string | null) => {
-  if (!iconName) return <LayoutDashboard />
-  return iconMap[iconName] || <LayoutDashboard />
+  if (!iconName) return <HomeOutlined />
+  return iconMap[iconName] || <HomeOutlined />
 }
 
 const buildMenuItems = (
@@ -76,8 +76,8 @@ function Dashboard() {
   const loadMenus = async () => {
     try {
       const result = await getMenuTree()
-      if (result.code === 0) {
-        setMenus(result.data)
+      if (result.data?.code === 0) {
+        setMenus(result.data.data)
       }
     } catch (error) {
       console.error('Failed to load menus:', error)
@@ -87,18 +87,18 @@ function Dashboard() {
   }
 
   const menuItems = [
-    { key: '1', icon: <Settings />, label: '设置' },
-    { key: '2', icon: <Users />, label: '用户管理' },
+    { key: '1', icon: <SettingOutlined />, label: '设置' },
+    { key: '2', icon: <UserOutlined />, label: '用户管理' },
     { type: 'divider' as const },
     {
       key: '3',
-      icon: <LogOut />,
+      icon: <LogoutOutlined />,
       label: '退出登录',
       onClick: handleLogout
     }
   ]
 
-  const sideMenuItems = buildMenuItems(menus, navigate)
+  const sideMenuItems = buildMenuItems(menus, navigate) || []
 
   // 获取当前选中的菜单项
   const selectedKeys = [location.pathname]
@@ -128,7 +128,7 @@ function Dashboard() {
             items={sideMenuItems.length > 0 ? sideMenuItems : [
               {
                 key: '/dashboard',
-                icon: <LayoutDashboard />,
+                icon: <HomeOutlined />,
                 label: '仪表盘',
                 onClick: () => navigate('/dashboard')
               }

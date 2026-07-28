@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Input, Modal, Form, Select, Table, message, Row, Col, Space, Switch, Tooltip } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SaveOutlined, CopyOutlined } from '@lucide/react';
+import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SaveOutlined, CopyOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { projectApi, formApi } from '../api';
 
@@ -45,7 +45,6 @@ const FormDesigner: React.FC = () => {
   const [showEditFieldModal, setShowEditFieldModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [editingField, setEditingField] = useState<FieldConfig | null>(null);
-  const [activeTab, setActiveTab] = useState<'form' | 'field'>('form');
   const [form] = Form.useForm();
   const [fieldForm] = Form.useForm();
 
@@ -103,7 +102,7 @@ const FormDesigner: React.FC = () => {
         fields: [],
       };
 
-      await formApi.create(selectedProject!, newForm);
+      await formApi.create(selectedProject!, newForm as unknown as Record<string, unknown>);
       message.success('表单创建成功');
       setShowAddFormModal(false);
       loadForms(selectedProject!);

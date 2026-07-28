@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Input, Modal, Form, Select, Table, message, Row, Col, Space } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SaveOutlined } from '@lucide/react';
+import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import TextArea from 'antd/es/input/TextArea';
 import type { ColumnsType } from 'antd/es/table';
 import { projectApi, pageApi } from '../api';
 
@@ -111,7 +112,7 @@ const PageDesigner: React.FC = () => {
         components: [],
       };
 
-      await pageApi.create(selectedProject!, newPage);
+      await pageApi.create(selectedProject!, newPage as unknown as Record<string, unknown>);
       message.success('页面创建成功');
       setShowAddPageModal(false);
       loadPages(selectedProject!);
