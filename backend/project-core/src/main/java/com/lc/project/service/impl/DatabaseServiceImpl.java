@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -111,7 +112,7 @@ public class DatabaseServiceImpl implements DatabaseService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             Flyway flyway = Flyway.configure()
-                    .dataSource(conn)
+                    .dataSource(new SingleConnectionDataSource(conn, true))
                     .locations("classpath:db/project-migration")
                     .baselineOnMigrate(true)
                     .load();
@@ -130,7 +131,7 @@ public class DatabaseServiceImpl implements DatabaseService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             Flyway flyway = Flyway.configure()
-                    .dataSource(conn)
+                    .dataSource(new SingleConnectionDataSource(conn, true))
                     .locations("classpath:db/project-migration")
                     .baselineOnMigrate(true)
                     .load();

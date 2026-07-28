@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +43,7 @@ public class FormServiceImpl implements FormService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             int offset = (page - 1) * size;
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
@@ -72,7 +73,7 @@ public class FormServiceImpl implements FormService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Map<String, Object> row = jdbcTemplate.queryForMap(
                     "SELECT id, project_id, form_code, form_name, form_config, status, version, created_time, updated_time " +
@@ -92,7 +93,7 @@ public class FormServiceImpl implements FormService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Map<String, Object> row = jdbcTemplate.queryForMap(
                     "SELECT id, project_id, form_code, form_name, form_config, status, version, created_time, updated_time " +
@@ -124,7 +125,7 @@ public class FormServiceImpl implements FormService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Integer exists = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM form_form WHERE form_code = ? AND deleted = 0",
@@ -199,7 +200,7 @@ public class FormServiceImpl implements FormService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             StringBuilder sql = new StringBuilder("UPDATE form_form SET version = version + 1");
             Object[] params = new Object[10];
@@ -250,7 +251,7 @@ public class FormServiceImpl implements FormService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             jdbcTemplate.update("DELETE FROM form_field WHERE form_id = ?", id);
             jdbcTemplate.update("UPDATE form_form SET deleted = 1, status = 0 WHERE id = ?", id);
@@ -259,11 +260,13 @@ public class FormServiceImpl implements FormService {
         }
     }
 
-    private Map<String, Object> getExistingForm(String dbUrl, Long id) throws SQLException {
+    private Map<String, Object> getExistingForm(String dbUrl, Long id) {
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
             return jdbcTemplate.queryForMap("SELECT form_config FROM form_form WHERE id = ?", id);
+        } catch (SQLException e) {
+            throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR.getCode(), "查询表单配置失败: " + e.getMessage());
         }
     }
 

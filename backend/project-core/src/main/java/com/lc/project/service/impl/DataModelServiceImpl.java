@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +43,7 @@ public class DataModelServiceImpl implements DataModelService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             int offset = (page - 1) * size;
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
@@ -72,7 +73,7 @@ public class DataModelServiceImpl implements DataModelService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Map<String, Object> row = jdbcTemplate.queryForMap(
                     "SELECT id, project_id, model_code as form_code, model_name as form_name, model_config as form_config, status, version, created_time, updated_time " +
@@ -92,7 +93,7 @@ public class DataModelServiceImpl implements DataModelService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Map<String, Object> row = jdbcTemplate.queryForMap(
                     "SELECT id, project_id, model_code as form_code, model_name as form_name, model_config as form_config, status, version, created_time, updated_time " +
@@ -124,7 +125,7 @@ public class DataModelServiceImpl implements DataModelService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Integer exists = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM dm_data_model WHERE model_code = ? AND deleted = 0",
@@ -201,7 +202,7 @@ public class DataModelServiceImpl implements DataModelService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             StringBuilder sql = new StringBuilder("UPDATE dm_data_model SET version = version + 1");
             Object[] params = new Object[10];
@@ -254,7 +255,7 @@ public class DataModelServiceImpl implements DataModelService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Map<String, Object> model = jdbcTemplate.queryForMap("SELECT model_code FROM dm_data_model WHERE id = ?", id);
             String modelCode = (String) model.get("model_code");
@@ -275,7 +276,7 @@ public class DataModelServiceImpl implements DataModelService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Map<String, Object> model = jdbcTemplate.queryForMap("SELECT model_code, model_config FROM dm_data_model WHERE id = ?", modelId);
             String modelCode = (String) model.get("model_code");
@@ -318,7 +319,7 @@ public class DataModelServiceImpl implements DataModelService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Map<String, Object> model = jdbcTemplate.queryForMap("SELECT model_code FROM dm_data_model WHERE id = ?", modelId);
             String modelCode = (String) model.get("model_code");
@@ -353,7 +354,7 @@ public class DataModelServiceImpl implements DataModelService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Map<String, Object> model = jdbcTemplate.queryForMap("SELECT model_code FROM dm_data_model WHERE id = ?", modelId);
             String modelCode = (String) model.get("model_code");
@@ -366,11 +367,13 @@ public class DataModelServiceImpl implements DataModelService {
         }
     }
 
-    private Map<String, Object> getExistingModel(String dbUrl, Long id) throws SQLException {
+    private Map<String, Object> getExistingModel(String dbUrl, Long id) {
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
             return jdbcTemplate.queryForMap("SELECT model_config FROM dm_data_model WHERE id = ?", id);
+        } catch (SQLException e) {
+            throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR.getCode(), "查询数据模型配置失败: " + e.getMessage());
         }
     }
 

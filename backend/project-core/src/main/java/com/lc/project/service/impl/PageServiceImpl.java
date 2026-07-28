@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,7 +44,7 @@ public class PageServiceImpl implements PageService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             int offset = (page - 1) * size;
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
@@ -73,7 +74,7 @@ public class PageServiceImpl implements PageService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Map<String, Object> row = jdbcTemplate.queryForMap(
                     "SELECT id, project_id, page_code, page_name, path, layout, page_config, status, version, created_time, updated_time " +
@@ -93,7 +94,7 @@ public class PageServiceImpl implements PageService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Map<String, Object> row = jdbcTemplate.queryForMap(
                     "SELECT id, project_id, page_code, page_name, path, layout, page_config, status, version, created_time, updated_time " +
@@ -130,7 +131,7 @@ public class PageServiceImpl implements PageService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Integer exists = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM page_page WHERE page_code = ? AND deleted = 0",
@@ -197,7 +198,7 @@ public class PageServiceImpl implements PageService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             StringBuilder sql = new StringBuilder("UPDATE page_page SET version = version + 1");
             Object[] params = new Object[10];
@@ -242,7 +243,7 @@ public class PageServiceImpl implements PageService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             jdbcTemplate.update(
                     "UPDATE page_page SET deleted = 1, status = 0 WHERE id = ?",
@@ -253,11 +254,13 @@ public class PageServiceImpl implements PageService {
         }
     }
 
-    private Map<String, Object> getExistingPage(String dbUrl, Long id) throws SQLException {
+    private Map<String, Object> getExistingPage(String dbUrl, Long id) {
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
             return jdbcTemplate.queryForMap("SELECT page_config FROM page_page WHERE id = ?", id);
+        } catch (SQLException e) {
+            throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR.getCode(), "查询页面配置失败: " + e.getMessage());
         }
     }
 

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +43,7 @@ public class ConfigServiceImpl implements ConfigService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             Map<String, Object> configMap = jdbcTemplate.queryForMap(
                     "SELECT id, project_id, config_json, schema_version, version FROM config_project_config WHERE project_id = ?",
@@ -85,7 +86,7 @@ public class ConfigServiceImpl implements ConfigService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, datasourceUsername, datasourcePassword)) {
             JdbcTemplate jdbcTemplate = new JdbcTemplate();
-            jdbcTemplate.setDataSource(() -> conn);
+            jdbcTemplate.setDataSource(new SingleConnectionDataSource(conn, true));
 
             int updated = jdbcTemplate.update(
                     "UPDATE config_project_config SET config_json = ?, schema_version = ?, version = version + 1, updated_by = ?, updated_time = NOW() WHERE project_id = ?",
