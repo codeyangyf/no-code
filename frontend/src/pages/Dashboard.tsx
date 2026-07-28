@@ -40,22 +40,21 @@ const buildMenuItems = (
   navigate: ReturnType<typeof useNavigate>
 ): MenuProps['items'] => {
   return menus.map(menu => {
+    const fullPath = menu.path ? `/dashboard${menu.path}` : `/dashboard/${menu.id}`
     if (menu.menuType === 'DIRECTORY') {
       return {
-        key: menu.path || menu.id.toString(),
+        key: fullPath,
         icon: getIcon(menu.icon),
         label: menu.menuName,
         children: menu.children ? buildMenuItems(menu.children, navigate) : []
       }
     } else if (menu.menuType === 'MENU') {
       return {
-        key: menu.path || menu.id.toString(),
+        key: fullPath,
         icon: getIcon(menu.icon),
         label: menu.menuName,
         onClick: () => {
-          if (menu.path) {
-            navigate(menu.path)
-          }
+          navigate(fullPath)
         }
       }
     }
@@ -125,7 +124,7 @@ function Dashboard() {
           <Menu
             mode="inline"
             selectedKeys={selectedKeys}
-            defaultOpenKeys={['/system']}
+            defaultOpenKeys={['/dashboard/system']}
             items={sideMenuItems.length > 0 ? sideMenuItems : [
               {
                 key: '/dashboard',
