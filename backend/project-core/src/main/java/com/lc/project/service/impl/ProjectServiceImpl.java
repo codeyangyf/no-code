@@ -5,9 +5,11 @@ import com.lc.common.exception.BusinessException;
 import com.lc.common.exception.GlobalErrorCode;
 import com.lc.project.dto.ProjectDTO;
 import com.lc.project.repository.ProjectRepository;
+import com.lc.project.service.DatabaseService;
 import com.lc.project.service.ProjectService;
 import com.lc.system.entity.ProjectInfo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,9 +22,11 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final DatabaseService databaseService;
 
     private static final List<String> VALID_STATUS = Arrays.asList(
             "INITIALIZING", "READY", "FAILED", "ARCHIVED", "PENDING_DELETE"
@@ -66,7 +70,25 @@ public class ProjectServiceImpl implements ProjectService {
         project.setLifecycleStatus("INITIALIZING");
         project.setCreatedBy(userId);
 
-        return toResponse(projectRepository.save(project));
+        ProjectInfo savedProject = projectRepository.save(project);
+
+        try {
+            databaseService.createProjectDatabase(savedProject.getId());
+            databaseService.createSandboxDatabase(savedProject.getId());
+            databaseService.executeBaselineMigration(savedProject.getId());
+            databaseService.executeSandboxBaselineMigration(savedProject.getId());
+
+            savedProject.setLifecycleStatus("READY");
+            projectRepository.save(savedProject);
+            log.info("Project database created successfully: project_{}", savedProject.getId());
+        } catch (Exception e) {
+            log.error("Failed to create project database", e);
+            savedProject.setLifecycleStatus("FAILED");
+            projectRepository.save(savedProject);
+            throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR.getCode(), "项目数据库创建失败: " + e.getMessage());
+        }
+
+        return toResponse(savedProject);
     }
 
     @Override
@@ -96,6 +118,15 @@ public class ProjectServiceImpl implements ProjectService {
     public void delete(Long tenantId, Long id) {
         ProjectInfo project = projectRepository.findByTenantIdAndId(tenantId, id)
                 .orElseThrow(() -> new BusinessException(GlobalErrorCode.NOT_FOUND));
+
+        try {
+            databaseService.deleteProjectDatabase(project.getId());
+            databaseService.deleteSandboxDatabase(project.getId());
+            log.info("Project database deleted successfully: project_{}", project.getId());
+        } catch (Exception e) {
+            log.error("Failed to delete project database", e);
+            throw new BusinessException(GlobalErrorCode.VALIDATION_ERROR.getCode(), "项目数据库删除失败: " + e.getMessage());
+        }
 
         project.setStatus(0);
         project.setLifecycleStatus("PENDING_DELETE");
