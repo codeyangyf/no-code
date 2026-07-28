@@ -7,6 +7,8 @@ import MenuManagement from './pages/MenuManagement'
 import TenantManagement from './pages/TenantManagement'
 import AuditLog from './pages/AuditLog'
 import FileManagement from './pages/FileManagement'
+import PageDesigner from './pages/PageDesigner'
+import FormDesigner from './pages/FormDesigner'
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
           <Route path="system/tenants" element={<TenantManagement />} />
           <Route path="system/audit-logs" element={<AuditLog />} />
           <Route path="system/files" element={<FileManagement />} />
+          <Route path="project/pages" element={<PageDesigner />} />
+          <Route path="project/forms" element={<FormDesigner />} />
         </Route>
       </Routes>
     </BrowserRouter>
